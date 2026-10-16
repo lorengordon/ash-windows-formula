@@ -169,7 +169,7 @@ For guidance on configuring customized consent-banners, please see the [Custom B
 ## Applying Policies from the Command Line
 
 The `ash-windows` formula includes a [custom salt execution module]
-(_modules/ash_win_lgpo.py) as a wrapper around salt's builtin `lgpo` module.
+(_modules/win_lgpo_ash.py) as a wrapper around salt's builtin `lgpo` module.
 The execution module is used internally by `ash-windows` baselines and states,
 and can also be called from the command line. This feature can be useful for
 testing policies or executing a one-time override of a specific baseline
