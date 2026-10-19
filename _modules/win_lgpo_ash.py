@@ -59,12 +59,12 @@ if HAS_WINDOWS_MODULES:
 
     import salt.utils.files
 
-    from .win_lgpo import (
-        _policy_info,
-        _transform_value,
-        _read_regpol_file,
-        _write_regpol_data,
-        _regexSearchRegPolData,
+    from salt.modules.win_lgpo import _policy_info, _transform_value
+    from salt.utils.win_lgpo_reg import (
+        CLASS_INFO,
+        GPT_INI_PATH,
+        read_reg_pol_file,
+        write_reg_pol_data,
     )
 
     try:
@@ -72,13 +72,12 @@ if HAS_WINDOWS_MODULES:
     except ImportError:
         import six
 
-    from salt.utils.functools import namespaced_function as _namespaced_function
     from salt.utils.stringutils import to_num
     from salt.utils.win_reg import Registry
 
     POLICY_INFO = _policy_info()
-    REGPOL_MACHINE = POLICY_INFO.admx_registry_classes["Machine"]["policy_path"]
-    REGPOL_USER = POLICY_INFO.admx_registry_classes["User"]["policy_path"]
+    REGPOL_MACHINE = CLASS_INFO["Machine"]["policy_path"]
+    REGPOL_USER = CLASS_INFO["User"]["policy_path"]
 
 
 class PolicyHelper(object):
@@ -346,10 +345,10 @@ class PolicyHelper(object):
         user_regpol = b""
 
         if not overwrite_regpol:
-            machine_regpol = _read_regpol_file(REGPOL_MACHINE) or b""
+            machine_regpol = read_reg_pol_file(REGPOL_MACHINE) or b""
 
         if not overwrite_regpol:
-            user_regpol = _read_regpol_file(REGPOL_USER) or b""
+            user_regpol = read_reg_pol_file(REGPOL_USER) or b""
 
         policy_objects = {
             "Machine": machine_regpol,
@@ -375,9 +374,6 @@ def __virtual__():
         return False
     if not HAS_WINDOWS_MODULES:
         return (False, "{0}: Required modules failed to load".format(__virtualname__))
-
-    global _write_regpol_data
-    _write_regpol_data = _namespaced_function(_write_regpol_data, globals())
 
     return __virtualname__
 
@@ -695,12 +691,12 @@ def apply_policies(policies, overwrite_regpol=False):
     # Apply regpol policies
     has_regpol = False
     for regclass, regpol in policy_objects.get("regpol", {}).items():
-        _write_regpol_data(
-            regpol,
-            POLICY_INFO.admx_registry_classes[regclass]["policy_path"],
-            POLICY_INFO.gpt_ini_path,
-            POLICY_INFO.admx_registry_classes[regclass]["gpt_extension_location"],
-            POLICY_INFO.admx_registry_classes[regclass]["gpt_extension_guid"],
+        write_reg_pol_data(
+            data_to_write=regpol,
+            policy_file_path=CLASS_INFO[regclass]["policy_path"],
+            gpt_extension=CLASS_INFO[regclass]["gpt_extension_location"],
+            gpt_extension_guid=CLASS_INFO[regclass]["gpt_extension_guid"],
+            gpt_ini_path=GPT_INI_PATH,
         )
         has_regpol = True if regpol else has_regpol
 
@@ -939,7 +935,7 @@ def list_secedit_policies(names=None, types=None, show_details=False):
 
 def get_regpol(regclass=None):
     regpol = {
-        "Machine": _read_regpol_file(REGPOL_MACHINE) or b"",
-        "User": _read_regpol_file(REGPOL_USER) or b"",
+        "Machine": read_reg_pol_file(REGPOL_MACHINE) or b"",
+        "User": read_reg_pol_file(REGPOL_USER) or b"",
     }
     return {regclass: regpol[regclass]} if regclass else regpol
